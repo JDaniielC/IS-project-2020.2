@@ -11,7 +11,8 @@ start:
     mov es, ax
     
     ;Código do projeto...
-
-   
+    mov ah, 0   
+    mov al, 13h ; modo VGA
+    int 10h
 
 jmp $

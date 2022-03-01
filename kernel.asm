@@ -67,15 +67,22 @@ start:
     mov si, obs
     call printf
 
-    mov ah, 03h ; escolhe a funcao de ler o tempo do sistema
-    mov ch, 0   ; horas
-    mov cl, 0   ; minutos
-    mov dh, 0   ; segundos
-    mov dl, 1   ; seta o modo entre dia e noite do relogio do sistema(1 para dia)
-    int 1aH     ; interrupcao que lida com o tempo do sistema
+    mov ah, 02h  ; Setando o cursor
+	mov bh, 0    ; Pagina 0
+	mov dh, 15   ; Linha
+	mov dl, 29   ; Coluna
+	int 10h
 
-    call await
-
+    call getchar
+    cmp al, '3'
+    je await_3
+    cmp al, '5'
+    je await_5
+    cmp al, '1'
+    je await_10
+    cmp al, 27 ; Esq = exit
+    je start
+    call bad_input
 jmp $
 
 putchar:
@@ -88,6 +95,20 @@ getchar:
   int 16h
   ret
 
+bad_input:
+    mov ah, 02h  ; Setando o cursor
+	mov bh, 0    ; Pagina 0
+	mov dh, 15   ; Linha
+	mov dl, 20   ; Coluna
+	int 10h
+    mov si, error
+    call printf
+    mov ah, 86h
+    mov cx, 4
+    mov dx, 500
+    int 15h
+jmp start
+
 good_job:
     mov ah, 02h  ; Setando o cursor
 	mov bh, 0    ; Pagina 0
@@ -99,31 +120,103 @@ good_job:
     call printf
 
     mov ah, 86h
-    mov cx, 500
+    mov cx, 10
     mov dx, 500
     int 15h
 jmp start
 
-await:
+await_3:
+    mov al, '3'
+    call putchar
+
+    mov ah, 03h ; escolhe a funcao de ler o tempo do sistema
+    mov ch, 0   ; horas
+    mov cl, 0   ; minutos
+    mov dh, 0   ; segundos
+    mov dl, 1   ; seta o modo entre dia e noite do relogio do sistema(1 para dia)
+    int 1aH     ; interrupcao que lida com o tempo do sistema
+
+.loop:
     mov ah, 02h ; escolhe a funcao de ler o tempo do sistema
     int 1aH     ; interrupcao que lida com o tempo do sistema
     
-    cmp dh, 5h
+    cmp dh, 4h
     je good_job
 
     add dh, 48
     mov [time], dh
 
     mov ah, 02h  ; Setando o cursor
-	mov bh, 0    ; Pagina 0
-	mov dh, 12   ; Linha
-	mov dl, 29 
-	int 10h
+    mov bh, 0    ; Pagina 0
+    mov dh, 12   ; Linha
+    mov dl, 29 
+    int 10h
 
     mov si, time
     call printf
+jmp .loop
 
-jmp await
+await_5:
+    mov al, '5'
+    call putchar
+
+    mov ah, 03h ; escolhe a funcao de ler o tempo do sistema
+    mov ch, 0   ; horas
+    mov cl, 0   ; minutos
+    mov dh, 0   ; segundos
+    mov dl, 1   ; seta o modo entre dia e noite do relogio do sistema(1 para dia)
+    int 1aH     ; interrupcao que lida com o tempo do sistema
+
+    .loop:
+        mov ah, 02h ; escolhe a funcao de ler o tempo do sistema
+        int 1aH     ; interrupcao que lida com o tempo do sistema
+        
+        cmp dh, 6h
+        je good_job
+
+        add dh, 48
+        mov [time], dh
+
+        mov ah, 02h  ; Setando o cursor
+        mov bh, 0    ; Pagina 0
+        mov dh, 12   ; Linha
+        mov dl, 29 
+        int 10h
+
+        mov si, time
+        call printf
+jmp .loop
+
+await_10:
+    mov al, '10'
+    call putchar
+
+    mov ah, 03h ; escolhe a funcao de ler o tempo do sistema
+    mov ch, 0   ; horas
+    mov cl, 0   ; minutos
+    mov dh, 0   ; segundos
+    mov dl, 1   ; seta o modo entre dia e noite do relogio do sistema(1 para dia)
+    int 1aH     ; interrupcao que lida com o tempo do sistema
+
+    .loop:
+        mov ah, 02h ; escolhe a funcao de ler o tempo do sistema
+        int 1aH     ; interrupcao que lida com o tempo do sistema
+        
+        cmp dh, 11h
+        je good_job
+
+        add dh, 48
+        mov [time], dh
+
+        mov ah, 02h  ; Setando o cursor
+        mov bh, 0    ; Pagina 0
+        mov dh, 12   ; Linha
+        mov dl, 29 
+        int 10h
+
+        mov si, time
+        call printf
+jmp .loop
 
 printf:
 	lodsb
@@ -149,6 +242,7 @@ data:
     instruction_time db 'Quantos minutos deseja descansar?', 0
     obs db 'Minutos = Segundos', 0
     work db 'Acabou o descanso, bom trabalho!', 0
+    error db 'Digite 3, 5 ou 1', 0
     timer db 'Timer', 0
     time db 8,0
     choice db 8, 0

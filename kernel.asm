@@ -1,71 +1,57 @@
 org 0x7e00
 jmp 0x0000:start
 
+%macro setText 3
+    mov ah, 02h  ; Setando o cursor
+	mov bh, 0    ; Pagina 0
+	mov dh, %1   ; Linha
+	mov dl, %2   ; Coluna
+	int 10h
+
+    mov si, %3
+    call printf
+%endmacro
+
+%macro startTimer 1
+    mov al, %1+48
+    call putchar
+
+    mov ah, 03h 
+    mov ch, 0   
+    mov cl, 0  
+    mov dh, 0   
+    mov dl, 1   
+    int 1aH 
+
+    .loop:
+        mov ah, 02h ;
+        int 1aH     
+        cmp dh, %1h
+        je good_job
+        add dh, 48
+        mov [time], dh
+        mov ah, 02h  ; Setando o cursor
+        mov bh, 0    ; Pagina 0
+        mov dh, 12   ; Linha
+        mov dl, 29 
+        int 10h
+        mov si, time
+        call printf
+    jmp .loop
+%endmacro
+
 start:
-    xor ax, ax
-    mov ds, ax
-    mov es, ax
-    
     mov ah, 0   
     mov al, 13h ; modo VGA
     int 10h
 
-    ; Colocando o Titulo
-	mov ah, 02h  ; Setando o cursor
-	mov bh, 0    ; Pagina 0
-	mov dh, 1    ; Linha
-	mov dl, 14   ; Coluna
-	int 10h
-    mov si, time_to_rest
-    call printf
-
-    mov ah, 02h  ; Setando o cursor
-	mov bh, 0    ; Pagina 0
-	mov dh, 5    ; Linha
-	mov dl, 4    ; Coluna
-	int 10h
-    mov si, instruction_time
-    call printf
-
-    mov ah, 02h  ; Setando o cursor
-	mov bh, 0    ; Pagina 0
-	mov dh, 9    ; Linha
-	mov dl, 27   ; Coluna
-	int 10h
-    mov si, timer
-    call printf
-
-    mov ah, 02h  ; Setando o cursor
-	mov bh, 0    ; Pagina 0
-	mov dh, 9    ; Linha
-	mov dl, 4    ; Coluna
-	int 10h
-    mov si, time_3
-    call printf
-
-    mov ah, 02h  ; Setando o cursor
-	mov bh, 0    ; Pagina 0
-	mov dh, 12    ; Linha
-	mov dl, 4    ; Coluna
-	int 10h
-    mov si, time_5
-    call printf
-
-    mov ah, 02h  ; Setando o cursor
-	mov bh, 0    ; Pagina 0
-	mov dh, 15    ; Linha
-	mov dl, 4    ; Coluna
-	int 10h
-    mov si, time_10
-    call printf
-
-    mov ah, 02h  ; Setando o cursor
-	mov bh, 0    ; Pagina 0
-	mov dh, 22   ; Linha
-	mov dl, 11   ; Coluna
-	int 10h
-    mov si, obs
-    call printf
+    setText 1, 14, time_to_rest
+    setText 5, 4, instruction_time
+    setText 9, 27, timer
+    setText 9, 4, time_3
+    setText 12, 4, time_5
+    setText 15, 4, time_9
+    setText 22, 11, obs
 
     mov ah, 02h  ; Setando o cursor
 	mov bh, 0    ; Pagina 0
@@ -74,16 +60,20 @@ start:
 	int 10h
 
     call getchar
-    cmp al, '3'
-    je await_3
-    cmp al, '5'
-    je await_5
     cmp al, '1'
-    je await_10
+    je await_3
+    cmp al, '2'
+    je await_5
+    cmp al, '3'
+    je await_9
     cmp al, 27 ; Esq = exit
     je start
     call bad_input
 jmp $
+
+await_3: startTimer 3
+await_5: startTimer 5
+await_9: startTimer 9
 
 putchar:
   mov ah, 0eh ;modo de imprmir na tela
@@ -93,130 +83,24 @@ putchar:
 getchar:
   mov ah, 00h
   int 16h
-  ret
+ret
 
-bad_input:
-    mov ah, 02h  ; Setando o cursor
-	mov bh, 0    ; Pagina 0
-	mov dh, 15   ; Linha
-	mov dl, 20   ; Coluna
-	int 10h
-    mov si, error
-    call printf
-    mov ah, 86h
-    mov cx, 4
-    mov dx, 500
-    int 15h
-jmp start
-
-good_job:
-    mov ah, 02h  ; Setando o cursor
-	mov bh, 0    ; Pagina 0
-	mov dh, 20   ; Linha
-	mov dl, 4 
-	int 10h
-
-    mov si, work
-    call printf
-
+delay:
     mov ah, 86h
     mov cx, 10
     mov dx, 500
     int 15h
+ret
+
+bad_input:
+    setText 15, 20, error
+    call delay
 jmp start
 
-await_3:
-    mov al, '3'
-    call putchar
-
-    mov ah, 03h ; escolhe a funcao de ler o tempo do sistema
-    mov ch, 0   ; horas
-    mov cl, 0   ; minutos
-    mov dh, 0   ; segundos
-    mov dl, 1   ; seta o modo entre dia e noite do relogio do sistema(1 para dia)
-    int 1aH     ; interrupcao que lida com o tempo do sistema
-
-.loop:
-    mov ah, 02h ; escolhe a funcao de ler o tempo do sistema
-    int 1aH     ; interrupcao que lida com o tempo do sistema
-    
-    cmp dh, 4h
-    je good_job
-
-    add dh, 48
-    mov [time], dh
-
-    mov ah, 02h  ; Setando o cursor
-    mov bh, 0    ; Pagina 0
-    mov dh, 12   ; Linha
-    mov dl, 29 
-    int 10h
-
-    mov si, time
-    call printf
-jmp .loop
-
-await_5:
-    mov al, '5'
-    call putchar
-
-    mov ah, 03h ; escolhe a funcao de ler o tempo do sistema
-    mov ch, 0   ; horas
-    mov cl, 0   ; minutos
-    mov dh, 0   ; segundos
-    mov dl, 1   ; seta o modo entre dia e noite do relogio do sistema(1 para dia)
-    int 1aH     ; interrupcao que lida com o tempo do sistema
-
-    .loop:
-        mov ah, 02h ; escolhe a funcao de ler o tempo do sistema
-        int 1aH     ; interrupcao que lida com o tempo do sistema
-        
-        cmp dh, 6h
-        je good_job
-
-        add dh, 48
-        mov [time], dh
-
-        mov ah, 02h  ; Setando o cursor
-        mov bh, 0    ; Pagina 0
-        mov dh, 12   ; Linha
-        mov dl, 29 
-        int 10h
-
-        mov si, time
-        call printf
-jmp .loop
-
-await_10:
-    mov al, '10'
-    call putchar
-
-    mov ah, 03h ; escolhe a funcao de ler o tempo do sistema
-    mov ch, 0   ; horas
-    mov cl, 0   ; minutos
-    mov dh, 0   ; segundos
-    mov dl, 1   ; seta o modo entre dia e noite do relogio do sistema(1 para dia)
-    int 1aH     ; interrupcao que lida com o tempo do sistema
-
-    .loop:
-        mov ah, 02h ; escolhe a funcao de ler o tempo do sistema
-        int 1aH     ; interrupcao que lida com o tempo do sistema
-        
-        cmp dh, 11h
-        je good_job
-
-        add dh, 48
-        mov [time], dh
-
-        mov ah, 02h  ; Setando o cursor
-        mov bh, 0    ; Pagina 0
-        mov dh, 12   ; Linha
-        mov dl, 29 
-        int 10h
-
-        mov si, time
-        call printf
-jmp .loop
+good_job:
+    setText 20, 4, work
+    call delay
+jmp start
 
 printf:
 	lodsb
@@ -242,10 +126,10 @@ data:
     instruction_time db 'Quantos minutos deseja descansar?', 0
     obs db 'Minutos = Segundos', 0
     work db 'Acabou o descanso, bom trabalho!', 0
-    error db 'Digite 3, 5 ou 1', 0
+    error db 'Digite 1, 2 ou 3', 0
     timer db 'Timer', 0
     time db 8,0
     choice db 8, 0
     time_3 db '1. 3 minuto', 0
     time_5 db '2. 5 minutos', 0
-    time_10 db '3. 10 minutos', 0
+    time_9 db '3. 9 minutos', 0

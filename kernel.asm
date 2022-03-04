@@ -1,53 +1,26 @@
 org 0x7e00
 jmp 0x0000:start
 
+%macro setText 3
+    mov ah, 02h  ; Setando o cursor
+	mov bh, 0    ; Pagina 0
+	mov dh, %1   ; Linha
+	mov dl, %2   ; Coluna
+	int 10h
+
+    mov si, %3
+    call printf
+%endmacro
+
 start:
-	xor ax, ax
-	mov ds, ax
-	mov es, ax
-
 	call initVideo
-	mov si, dino
-	call drawImg
 
-    mov ah, 02h  ;Setando o cursor
-	mov bh, 0    ;Pagina 0
-	mov dh, 11    ;Linha
-	mov dl, 13   ;Coluna
-	int 10h
-
-    mov si, offline
-    call printf
-
-    mov ah, 02h  ;Setando o cursor
-	mov bh, 0    ;Pagina 0
-	mov dh, 14    ;Linha
-	mov dl, 3   ;Coluna
-	int 10h
-
-    mov si, text_fun1
-    call printf
-
-    mov ah, 02h  ;Setando o cursor
-	mov bh, 0    ;Pagina 0
-	mov dh, 15    ;Linha
-	mov dl, 3   ;Coluna
-	int 10h
-
-    mov si, text_fun2
-    call printf
-
-    mov ah, 02h  ;Setando o cursor
-	mov bh, 0    ;Pagina 0
-	mov dh, 18    ;Linha
-	mov dl, 12   ;Coluna
-	int 10h
-
-    mov si, try
-    call printf
-
-    mov si, esc_button
-    call drawImg1
+	call draw_dino
+    setText 11, 13, offline
+    setText 14, 3, text_fun1
+    setText 15, 3, text_fun2
+    setText 18, 12, try
+    call draw_esq_button
 
     mov ah, 0
     int 16h
@@ -69,7 +42,7 @@ printf:
 	mov dx, 0
 	jmp printf
 
-.end:
+    .end:
     mov ah, 0eh
     mov al, 0xd
     int 10h
@@ -81,34 +54,8 @@ initVideo:
 	mov ah, 00h
 	mov al, 13h
 	int 10h
-
-	call set_background_white
-ret
-
-writePixel:
-	push dx
-	push cx
-	mov ah, 0ch
-	add dx, 50
-	add cx, 130
-	int 10h
-	pop cx
-	pop dx
-ret
-
-writePixel1:
-	push dx
-	push cx
-	mov ah, 0ch
-	add dx, 2
-	add cx, 2
-	int 10h
-	pop cx
-	pop dx
-ret
-
-set_background_white:
-	mov ah, 0ch 
+    ; Set background white
+    mov ah, 0ch 
 	mov al, 0fh
 	mov bh, 0
 	mov cx, 0
@@ -128,19 +75,28 @@ set_background_white:
 		jne .back_column
 	ret
 
-drawImg: ; mov si, img
-	mov dx, 0            ; Y
+
+draw_dino: 
+    mov si, dino
+	mov dx, 0           
 	mov bx, si
 	add si, 2
 	.for1:
 		cmp dl, byte[bx+1]
 		je .endfor1
-		mov cx, 0        ; X
+		mov cx, 0       
 		.for2:
 			cmp cl, byte[bx]
 			je .endfor2
 			lodsb
-			call writePixel
+            push dx ; Draw pixel
+            push cx
+            mov ah, 0ch
+            add dx, 50
+            add cx, 130
+            int 10h
+            pop cx
+            pop dx
 			inc cx
 			jmp .for2
 		.endfor2:
@@ -149,7 +105,8 @@ drawImg: ; mov si, img
 	.endfor1:
 	ret
 
-drawImg1: ; mov si, img
+draw_esq_button:
+    mov si, esc_button
 	mov dx, 0            ; Y
 	mov bx, si
 	add si, 2
@@ -157,18 +114,25 @@ drawImg1: ; mov si, img
 		cmp dl, byte[bx+1]
 		je .endfor1
 		mov cx, 0        ; X
-		.for2:
-			cmp cl, byte[bx]
-			je .endfor2
-			lodsb
-			call writePixel1
-			inc cx
-			jmp .for2
-		.endfor2:
-		inc dx
-		jmp .for1
-	.endfor1:
-	ret
+    .for2:
+        cmp cl, byte[bx]
+        je .endfor2
+        lodsb
+        push dx
+        push cx
+        mov ah, 0ch
+        add dx, 2
+        add cx, 2
+        int 10h
+        pop cx
+        pop dx
+        inc cx
+        jmp .for2
+    .endfor2:
+        inc dx
+        jmp .for1
+    .endfor1:
+ret
 
 data:
     offline db "Sem internet", 0

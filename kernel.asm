@@ -69,14 +69,14 @@ ret
 
 draw_box_app:
 	mov ah, 0ch 
-	mov al, 06h
+	mov al, 09h
 	mov bh, 0
     call box_app1
 ret
-; 09h é bom tb (azul claro)
+
 draw_square:
 	mov ah, 0ch 
-	mov al, 06h
+	mov al, 09h
 	mov bh, 0
 	mov cx, 0
 	.draw_seg:
@@ -121,11 +121,11 @@ printf:
 ret
 
 data:
-    title db 'TchucoOS', 0
+	title db 'TchucoOS', 0
 	app1 db 'Browser', 0
-    app2 db 'Notes', 0
-    app3 db 'Photos', 0
-    app4 db 'RestTime', 0
-    app5 db 'Terminal', 0
-    app6 db 'About', 0
+	app2 db 'Notes', 0
+	app3 db 'Photos', 0
+	app4 db 'RestTime', 0
+	app5 db 'Terminal', 0
+	app6 db 'About', 0
 

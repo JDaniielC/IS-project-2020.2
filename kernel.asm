@@ -1,13 +1,7 @@
 org 0x7e00
 jmp 0x0000:start
 
-data:
-
 start:
-    xor ax, ax
-    mov ds, ax
-    mov es, ax
-
     call set_video
     mov si, bloco_de_notas
     call printf
@@ -20,20 +14,6 @@ start:
     jmp teclado
 
 jmp $
-
-delay: 
-    mov dx, 0
-	.delay_print:
-        inc dx
-        mov cx, 0
-    .time:
-        inc cx
-        cmp cx, 100000
-        jne .time
-
-	cmp dx, 100000
-	jne .delay_print
-    ret
 
 set_video:
     mov ah, 0

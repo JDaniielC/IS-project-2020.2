@@ -33,6 +33,7 @@ ret
 start:
 	xor ax,ax
 	mov ds,ax
+	mov es, ax
 
 	Reset_Disk_Drive:
 		mov ah,0		;INT 13h AH=00h: Reset Disk Drive
@@ -59,7 +60,7 @@ start:
 
 	mov ax,0x07e0;mov ax,0x07e0
 	mov es,ax ; 
-	mov bx,0x0000 ; 07e0:0000 -> 0x07e00
+	xor bx, bx ; 07e0:0000 -> 0x07e00
 
 	Load_Kernel:
 		mov ah, 0x02		;;INT 13h AH=02h: Read Sectors From Drive

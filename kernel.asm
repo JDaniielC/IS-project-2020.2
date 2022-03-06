@@ -1,12 +1,6 @@
 org 0x7e00
 jmp 0x0000:start
 
-%macro drawer 1
-	mov ah, 0ch 
-	mov al, %1
-	mov bh, 0
-%endmacro
-
 %macro setText 3
 	mov ah, 02h  ; Setando o cursor
 	mov bh, 0    ; Pagina 0
@@ -16,6 +10,22 @@ jmp 0x0000:start
 
 	mov si, %3
 	call printf
+%endmacro
+
+start:
+	call initVideo
+	setText 15, 16, title
+	call draw_logo
+	call delay
+
+	call menu
+jmp $
+
+
+%macro drawer 1
+	mov ah, 0ch 
+	mov al, %1
+	mov bh, 0
 %endmacro
 
 %macro drawSquare 4
@@ -64,14 +74,66 @@ jmp 0x0000:start
 	jne .draw_columns
 %endmacro
 
-start:
-	call initVideo
-	setText 15, 16, title
-	call draw_logo
-	call delay
+%macro startTimer 1
+    mov al, %1+48
+		mov ah, 0eh ; modo de imprmir na tela
+  	int 10h     ; imprime o que tá em al
 
-	call menu
-jmp $
+    mov ah, 03h 
+    mov ch, 0   
+    mov cl, 0  
+    mov dh, 0   
+    mov dl, 1   
+    int 1aH 
+
+    .loop:
+        mov ah, 02h ;
+        int 1aH     
+        cmp dh, %1h
+        je good_job
+        add dh, 48
+        mov [time], dh
+        mov ah, 02h  ; Setando o cursor
+        mov bh, 0    ; Pagina 0
+        mov dh, 12   ; Linha
+        mov dl, 29 
+        int 10h
+        mov si, time
+        call printf
+    jmp .loop
+%endmacro
+
+getchar:
+  mov ah, 00h
+  int 16h
+ret
+
+printf:
+	lodsb
+	cmp al,0
+	je .end
+
+	mov ah, 0eh
+	; Trocar por 0ah
+	mov bl, 15
+	int 10h
+
+	mov dx, 0
+	jmp printf
+
+	.end:
+	mov ah, 0eh
+	mov al, 0xd
+	int 10h
+	mov al, 0xa
+	int 10h
+ret
+
+initVideo:
+	mov ah, 00h
+	mov al, 13h
+	int 10h
+ret
 
 menu:
 	call initVideo
@@ -184,32 +246,15 @@ cursor_app6:
 	drawCursor 265, 164, 177, 278
 ret
 
-printf:
-	lodsb
-	cmp al,0
-	je .end
+bad_input:
+    setText 15, 20, error
+    call delay
+jmp start
 
-	mov ah, 0eh
-	; Trocar por 0ah
-	mov bl, 15
-	int 10h
-
-	mov dx, 0
-	jmp printf
-
-	.end:
-	mov ah, 0eh
-	mov al, 0xd
-	int 10h
-	mov al, 0xa
-	int 10h
-ret
-
-initVideo:
-	mov ah, 00h
-	mov al, 13h
-	int 10h
-ret
+good_job:
+    setText 20, 4, work
+    call delay
+jmp start
 
 background_white:
 	; Set background white
@@ -239,8 +284,7 @@ first_cursor:
 	drawer 2
 	drawCursor 85, 54, 67, 98
 
-  mov ah, 0
-	int 16h
+  call getchar
 
   cmp al, 13
 	je init_browser
@@ -266,8 +310,7 @@ init_browser:
 	setText 18, 12, try
 	call draw_esq_button
 
-	mov ah, 0
-	int 16h
+	call getchar
 
 	cmp al, 27
 	je menu
@@ -279,8 +322,7 @@ second_cursor:
 	drawer 2
 	drawCursor 85, 109, 122, 98
 
-  mov ah, 0
-	int 16h
+  call getchar
   ; cmp al, 13 e jogar para o app
   
 	cmp al, 'w'
@@ -301,8 +343,7 @@ third_cursor:
 	drawer 2
 	drawCursor 85, 164, 177, 98
 
-  mov ah, 0
-	int 16h
+  call getchar
   ; cmp al, 13 e jogar para o app
   
 	cmp al, 'w'
@@ -323,8 +364,7 @@ fourth_cursor:
 	drawer 2
 	drawCursor 265, 54, 67, 278
 
-  mov ah, 0
-	int 16h
+  call getchar
   ; cmp al, 13 e jogar para o app
   
 	cmp al, 'w'
@@ -345,10 +385,10 @@ fifth_cursor:
 	drawer 2
 	drawCursor 265, 109, 122, 278
 
-  mov ah, 0
-	int 16h
-  ; cmp al, 13 e jogar para o app
-  
+  call getchar
+
+  cmp al, 13
+	je time_app
 	cmp al, 'w'
   je fourth_cursor
 	cmp al, 'a'
@@ -361,14 +401,46 @@ fifth_cursor:
   jmp fifth_cursor
 ret
 
+await_3: startTimer 3
+await_5: startTimer 5
+await_9: startTimer 9
+
+time_app:
+	call initVideo
+	setText 1, 14, time_to_rest
+	setText 5, 4, instruction_time
+	setText 9, 27, timer
+	setText 9, 4, time_3
+	setText 12, 4, time_5
+	setText 15, 4, time_9
+	setText 22, 11, obs
+	call draw_esq_button
+
+	mov ah, 02h  ; Setando o cursor
+	mov bh, 0    ; Pagina 0
+	mov dh, 15   ; Linha
+	mov dl, 29   ; Coluna
+	int 10h
+
+	call getchar
+	cmp al, '1'
+	je await_3
+	cmp al, '2'
+	je await_5
+	cmp al, '3'
+	je await_9
+	cmp al, 27
+	je menu
+	call bad_input
+jmp time_app
+
 sixth_cursor:
 	drawer 0
 	call cursor_app1
 	drawer 2
 	drawCursor 265, 164, 177, 278
 
-  mov ah, 0
-	int 16h
+  call getchar
   ; cmp al, 13 e jogar para o app
   
 	cmp al, 'w'
@@ -442,6 +514,7 @@ draw_esq_button:
 ret
 
 data:
+	; SO interface
 	title db 'TchucoOS', 0
 	app1 db 'Browser', 0
 	app2 db 'Notes', 0
@@ -449,10 +522,23 @@ data:
 	app4 db 'RestTime', 0
 	app5 db 'Terminal', 0
 	app6 db 'About', 0
+	; Browser APP
 	offline db "Sem internet", 0
 	text_fun1 db "Retire os cabos de rede e roteador", 0
 	text_fun2 db "Desconecte de sua rede Wi-Fi", 0
 	try db "Tente novamente", 0
+	; Time to Rest APP
+	time_to_rest db 'Time to Rest', 0
+	instruction_time db 'Quantos minutos deseja descansar?', 0
+	obs db 'Minutos = Segundos', 0
+	work db 'Acabou o descanso, bom trabalho!', 0
+	error db 'Digite 1, 2 ou 3', 0
+	timer db 'Timer', 0
+	time db 8,0
+	choice db 8, 0
+	time_3 db '1. 3 minuto', 0
+	time_5 db '2. 5 minutos', 0
+	time_9 db '3. 9 minutos', 0
 
 lacoste db 35, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 2, 2, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 2, 2, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 8, 2, 2, 0, 2, 2, 2, 2, 8, 8, 0, 0, 0, 0, 2, 2, 0, 2, 0, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 0, 2, 2, 2, 2, 0, 2, 2, 2, 2, 0, 2, 2, 2, 2, 0, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 2, 2, 2, 2, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 2, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2, 2, 0, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 6, 2, 2, 2, 2, 0, 0, 0, 2, 2, 2, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 4, 4, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 2, 2, 0, 8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 8, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 

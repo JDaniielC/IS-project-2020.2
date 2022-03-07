@@ -2,37 +2,30 @@ org 0x500
 jmp 0x0000:start
 
 start:
-    xor ax, ax
-    mov ds, ax
-    mov es, ax
+	xor ax,ax
+	mov ds,ax
+	mov es, ax
 
-reset:
-    mov ah, 00h ;reseta o controlador de disco
-    mov dl, 0   ;floppy disk
-    int 13h
+	Reset_Disk_Drive:
+		mov ah,0		;INT 13h AH=00h: Reset Disk Drive
+		mov dl,0		;floppydisk 
+		int 13h			;interrupção de acesso ao disco
+	jc Reset_Disk_Drive		;se der erro CF é setado, daí voltaria para o Reset_Disk_Drive
 
-    jc reset    ;se o acesso falhar, tenta novamente
+	mov ax,0x07e0;mov ax,0x07e0
+	mov es,ax ; 
+	xor bx, bx ; 07e0:0000 -> 0x07e00
 
-    jmp load_kernel
+	Load_Kernel:
+		mov ah, 0x02		;;INT 13h AH=02h: Read Sectors From Drive
+		mov al, 30	;numero de setores ocupados pelo kernel
+		mov ch, 0		;trilha 0
+		mov cl, 3	;vai comecar a ler do setor 3
+		mov dh, 0		;cabeca 0
+		mov dl, 0		;drive 0
+		int 13h			;interrupcao de disco
+	jc Load_Kernel	;se der erro CF é setado, daí voltaria para o Load_Kernel	
 
-load_kernel:
-    ;Setando a posição do disco onde kernel.asm foi armazenado(ES:BX = [0x7E00:0x0])
-    mov ax,0x7E0	;0x7E0<<1 + 0 = 0x7E00
-    mov es,ax
-    xor bx,bx		;Zerando o offset
+jmp 0x7e00
 
-    mov ah, 0x02 ;le o setor do disco
-    mov al, 20  ;porção de setores ocupados pelo kernel.asm
-    mov ch, 0   ;track 0
-    mov cl, 3   ;setor 3
-    mov dh, 0   ;head 0
-    mov dl, 0   ;drive 0
-    int 13h
-
-    jc load_kernel ;se o acesso falhar, tenta novamente
-
-    jmp 0x7e00  ;pula para o setor de endereco 0x7e00, que é o kernel
-    
-
-times 510-($-$$) db 0 ;512 bytes
-dw 0xaa55	
+jmp $

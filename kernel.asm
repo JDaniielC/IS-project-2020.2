@@ -212,11 +212,9 @@ teclado:
 	cmp al, 8
 	je backspace
 	cmp al, 27
-	je start
+	je menu
 	cmp dl, 100
 	je endline
-	cmp al, 27
-	je menu
 	
 	mov ah, 02h ; setar o cursor
 	mov bh, 0   ; pagina

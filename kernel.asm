@@ -160,6 +160,73 @@ delay:
 	int 15h
 ret
 
+endline:
+    mov ah, 02h ; setar o cursor
+    mov bh, 0   ; pagina
+    mov dl, 1
+    inc dh
+    int 10h
+jmp teclado
+
+delete_endline:
+	cmp dh, 2 ;Linha inicial
+	je teclado
+
+	mov al, ' '
+	mov ah, 09h ; codigo para printar caractere apenas onde esta o cursor
+	mov bh, 0   ; seta a pagina
+	mov bl, 15  ; seta a cor do caractere, nesse caso, branco
+	int 10h
+
+	mov ah, 02h ; setar o cursor
+	mov bh, 0   ; pagina
+	dec dh
+	mov dl, 100
+	int 10h
+
+jmp teclado
+
+backspace:
+	cmp dl, 1
+	je delete_endline
+
+	mov al, ' '
+	mov cx, 1
+	mov ah, 09h ; codigo para printar caractere apenas onde esta o cursor
+	mov bh, 0   ; seta a pagina
+	mov bl, 15  ; seta a cor do caractere, nesse caso, branco
+	int 10h
+
+	mov ah, 02h ; setar o cursor
+	dec dl ; coluna --
+	mov bh, 0   ; pagina
+    int 10h
+
+jmp teclado
+
+
+teclado:
+	mov ah, 0   ; prepara o ah para a chamada do teclado
+	int 16h     ; interrupcao para ler o caractere e armazena-lo em al
+
+	cmp al, 8
+	je backspace
+	cmp al, 27
+	je menu
+	cmp dl, 100
+	je endline
+	
+	mov ah, 02h ; setar o cursor
+	mov bh, 0   ; pagina
+	inc dl
+	int 10h
+
+	mov ah, 09h ; codigo para printar caractere apenas onde esta o cursor
+	mov bh, 0   ; seta a pagina
+	int 10h
+
+jmp teclado
+
 draw_logo:
 	mov si, lacoste
 	mov dx, 0            ; Y
@@ -411,7 +478,7 @@ fourth_cursor:
   call getchar
   
 	cmp al, 13
-	; je 
+	je notes_app
 	cmp al, 'w'
   je sixth_cursor
 	cmp al, 'a'
@@ -423,6 +490,26 @@ fourth_cursor:
 
   jmp fourth_cursor
 ret
+
+notes_app:
+	; Init Video
+	mov ah, 0
+  mov al, 2h
+  int 10h
+	; Set background Color
+  mov ah, 0Bh
+  mov bh, 0
+  mov bl, 1
+  int 10h
+
+	setText 1, 1, ESC
+	setText 1, 33, bloco_de_notas
+	mov ah, 02h ; Setando o cursor
+  mov dh, 2   ; Linha
+	mov dl, 1   ; Coluna
+	int 10h
+
+  jmp teclado
 
 fifth_cursor:
 	drawer 0
@@ -561,24 +648,24 @@ draw_esc_button:
 		cmp dl, byte[bx+1]
 		je .endfor1
 		mov cx, 0        ; X
-    .for2:
-        cmp cl, byte[bx]
-        je .endfor2
-        lodsb
-        push dx
-        push cx
-        mov ah, 0ch
-        add dx, 2
-        add cx, 2
-        int 10h
-        pop cx
-        pop dx
-        inc cx
-        jmp .for2
-    .endfor2:
-        inc dx
-        jmp .for1
-    .endfor1:
+	.for2:
+		cmp cl, byte[bx]
+		je .endfor2
+		lodsb
+		push dx
+		push cx
+		mov ah, 0ch
+		add dx, 2
+		add cx, 2
+		int 10h
+		pop cx
+		pop dx
+		inc cx
+		jmp .for2
+	.endfor2:
+		inc dx
+		jmp .for1
+	.endfor1:
 ret
 
 data:
@@ -620,6 +707,9 @@ data:
 	JDaniel db 'Jose Daniel', 0
 	LK db 'Lucas Emmanuel-LK', 0
 	Pedro db 'Pedro Rogrigues', 0
+	; Notes app
+	bloco_de_notas db 'Bloco de notas', 0
+	ESC db 'ESC', 0
 
 lacoste db 35, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 2, 2, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 2, 2, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 8, 2, 2, 0, 2, 2, 2, 2, 8, 8, 0, 0, 0, 0, 2, 2, 0, 2, 0, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 0, 2, 2, 2, 2, 0, 2, 2, 2, 2, 0, 2, 2, 2, 2, 0, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 2, 2, 2, 2, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 2, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2, 2, 0, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 6, 2, 2, 2, 2, 0, 0, 0, 2, 2, 2, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 4, 4, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 2, 2, 0, 8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 8, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 

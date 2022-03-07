@@ -12,10 +12,10 @@ start:
 
     jmp reset
 
-reset:
+reset: ;https://en.wikipedia.org/wiki/INT_13H
     mov ah, 00h ;reseta o controlador de disco
     mov dl, 0   ;floppy disk
-    int 13h
+    int 13h     ;interrupção de acesso ao disco
 
     jc reset    ;se o acesso falhar, tenta novamente
 

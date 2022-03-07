@@ -31,6 +31,7 @@ stringuname5 db '  Quem usa ThucOS faz uma grande favor ao meio ambiente :)',10,
 helloword db ' Hello world pq aqui a gente programa very good ',13,0
 sdf db '  8mb livre amigao bora comprar um hd novo',13,10
 
+
 ;comanditos
 ls db 'ls',0
 dan db 'dan',0
@@ -46,6 +47,7 @@ secret db 'secret',0
 hello db 'hello',0
 clear db 'clear',0
 df db 'df',0
+exit db 'exit',0
 
 
 stringname times 16 db 0
@@ -105,6 +107,7 @@ start:
 			funcao hello, command_hello
 			funcao clear, command_clear
 			funcao df, command_df
+			funcao exite, command_exit
 			
 
 			jmp invalid
@@ -303,4 +306,6 @@ get_input:
 		setcommand sdf
 		jmp system_loop
 
+	command_exit
+		jmp system
 ;final

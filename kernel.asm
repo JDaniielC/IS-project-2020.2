@@ -478,7 +478,7 @@ ret
 %endmacro
 
 %macro setcommand 1
-	mov bx,WHITE
+	mov bx, 15
 	mov si, %1
 	call print_string
 %endmacro
@@ -499,8 +499,8 @@ ret
 prompt_command:
 	xor ax,ax
 	mov ds,ax
-
-	mov bx,WHITE
+	call video
+	mov bx, 15
 	xor dx,dx
 	mov dl,'0'
 	mov dh,'4'
@@ -571,7 +571,7 @@ strcmp:
 		ret
 	
 print_user:
-	mov bx,WHITE
+	mov bx, 15
 	mov si,stringTCK
 	call print_string
 	mov si,stringname
@@ -654,7 +654,7 @@ get_input:
 		ret
 
 	command_ls:
-		mov bx,WHITE
+		mov bx, 15
 		mov si,stringcommandlist
 		call print_string
 		setprint touch
@@ -666,6 +666,7 @@ get_input:
 		setprint hello
 		setprint df
 		setprint clear
+		setprint exit
 		mov bx, 7
 		setprint stringsecret2
 		jmp system_loop

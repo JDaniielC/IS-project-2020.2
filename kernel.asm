@@ -16,14 +16,24 @@ start:
 
 	call initVideo
 	getspassword:
-		mov si,stringaskpassword
-		call printf
+		mov bx, 15
+		mov si, stringusuario
+		call print_string
+		mov di, stringname
+		call get_input
+		mov si,string_senha
+		call print_string
 		mov di,password
-		call get_input
-	askpassword:
-		mov si,password
-		mov di,stringpassword
-		call get_input
+		call get_password
+		
+		jmp comp_pass
+	comp_pass:
+		mov si, String_senha2
+		call print_string
+		mov di, stringpassword
+		call get_password
+		mov si, stringpassword
+		mov di, password
 		call strcmp
 		cmp al,1
 		jne wrong
@@ -37,10 +47,8 @@ start:
 		mov ah,0xe
 		mov al,dh
 		int 10h
-		mov si,stringwrongpassword2
-		call printf
 		dec dh
-		jmp askpassword
+		jmp comp_pass
 	system:
 	call initVideo
 	setText 15, 16, title
@@ -50,6 +58,61 @@ start:
 	call menu
 jmp $
 
+dead:
+	call clean
+	mov bx, 0
+	mov ax,0x0b00
+	int 10h
+
+get_password:
+	xor cl,cl ;zera variavel cl (sera usada como contador)
+	loop_get_password:
+		mov ah,0
+		int 16h
+		cmp al,08h ;backspace teclado?
+		je key_backspace_password
+		cmp al,0dh ;enter teclado?
+		je key_enter_password
+		cmp cl,0fh ;15 valores ja teclados?
+		je loop_get_password ;só aceita backspace ou enter
+
+		mov byte [di],al
+		inc di
+		mov al,'*'
+		mov ah,0eh
+		int 10h
+		inc cl
+		jmp loop_get_password
+
+		key_backspace_password:
+			cmp cl,0
+			je loop_get_password ;n faz sentido apagar string vazia
+
+			dec di ;volta dl pra o caractere anterior
+			mov byte [di],0 ;zera o valor daquela posicao
+			dec cl ;diminui o contador em 1
+
+			mov ah,0eh
+			mov al,08h ;imprime backspace(volta o cursor)
+			int 10h
+
+			mov al,' '
+			int 10h
+
+			mov al,08h 
+			int 10h
+			jmp loop_get_password
+
+		key_enter_password:
+			mov al,0
+			mov byte[di],al
+
+			mov ah,0eh
+			mov al,0dh
+			int 10h
+			mov al,0ah
+			int 10h
+			ret
 
 %macro drawer 1
 	mov ah, 0ch 
@@ -137,73 +200,6 @@ getchar:
   int 16h
 ret
 
-get_input:
-	xor cl,cl ;zera variavel cl (sera usada como contador)
-	loop_get_input:
-		mov ah,0
-		int 16h
-		cmp al,08h ;backspace teclado?
-		je key_backspace_input
-		cmp al,0dh ;enter teclado?
-		je key_enter_input
-		cmp cl,28h ;40 valores ja teclados?
-		je loop_get_input ;só aceita backspace ou enter
-
-		mov ah,0eh
-		int 10h
-		mov byte [di],al
-		inc di
-		inc cl
-		jmp loop_get_input
-
-		key_backspace_input:
-			cmp cl,0
-			je loop_get_input ;n faz sentido apagar string vazia
-
-			dec di ;volta dl pra o caractere anterior
-			mov byte [di],0 ;zera o valor daquela posicao
-			dec cl ;diminui o contador em 1
-
-			mov ah,0eh
-			mov al,08h ;imprime backspace(volta o cursor)
-			int 10h
-
-			mov al,' '
-			int 10h
-
-			mov al,08h 
-			int 10h
-			jmp loop_get_input
-
-		key_enter_input:
-			mov al,0
-			mov byte[di],al
-
-			mov ah,0eh
-			mov al,0dh
-			int 10h
-			mov al,0ah
-			int 10h
-			ret
-
-strcmp:;di é a constante
-	strcmp_loop:
-		mov al,byte [di]
-		inc di
-		mov ah,byte [si]
-		inc si
-		cmp al,0
-		je eq
-		cmp ah,al
-		jne dif
-		jmp strcmp_loop
-	eq:
-		mov al,1
-		jmp strcmp_end
-	dif:
-		xor al,al
-	strcmp_end:
-		ret
 		
 printf:
 	lodsb
@@ -648,25 +644,6 @@ print_string:
 	end_print_string:
 		ret
 
-strcmp:
-	strcmp_loop:
-		mov al,byte [di]
-		inc di
-		mov ah,byte [si]
-		inc si
-		cmp al,0
-		je eq
-		cmp ah,al
-		jne dif
-		jmp strcmp_loop
-	eq:
-		mov al,1
-		jmp strcmp_end
-	dif:
-		xor al,al
-	strcmp_end:
-		ret
-	
 print_user:
 	mov bx, 15
 	mov si,stringTCK
@@ -700,6 +677,25 @@ clean:
 	mov ah, 0x2
 	int 0x10
 ret
+
+strcmp:;di é a constante
+	strcmp_loop:
+		mov al,byte [di]
+		inc di
+		mov ah,byte [si]
+		inc si
+		cmp al,0
+		je eq
+		cmp ah,al
+		jne dif
+		jmp strcmp_loop
+	eq:
+		mov al,1
+		jmp strcmp_end
+	dif:
+		xor al,al
+	strcmp_end:
+		ret
 
 get_input:
 	xor cl,cl ;zera variavel cl (sera usada como contador)
@@ -950,6 +946,7 @@ about_app:
 	setText 16, 22, Pedro
 	setText 19, 22, LK
 	setText 22, 22, tchucoOS
+	setText 4, 22, stringname
 
 	call draw_white_border
 	call draw_esc_button
@@ -1059,9 +1056,10 @@ data:
 	bloco_de_notas db 'Bloco de notas', 0
 	ESC db 'ESC', 0
 	; Login
-	stringaskpassword db 'Password: ',0
+	stringusuario db 'Username: ', 0
+	string_senha db 'Create Password:',0
+	String_senha2 db 'Confirm password:',0
 	stringwrongpassword db 'Incorrect Password.',0
-	stringwrongpassword2 db ' Chances Left',10,13,0
 	stringpassword times 16 db 0
 	password times 16 db 0
 	

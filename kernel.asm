@@ -1,13 +1,19 @@
 org 0x7e00
 jmp 0x0000:start
 
+%define blackColor 0
+%define darkGreenColor 2
+%define blueColor 9
+%define greenColor 10
+%define yellowColor 14
+%define whiteColor 15
+
 %macro setText 3
 	mov ah, 02h  ; Setando o cursor
 	mov bh, 0    ; Pagina 0
 	mov dh, %1   ; Linha
 	mov dl, %2   ; Coluna
 	int 10h
-
 	mov si, %3
 	call printf
 %endmacro
@@ -17,10 +23,8 @@ start:
 	setText 15, 16, title
 	call draw_logo
 	call delay
-
 	call menu
 jmp $
-
 
 %macro drawer 1
 	mov ah, 0ch 
@@ -75,33 +79,37 @@ jmp $
 %endmacro
 
 %macro startTimer 1
-    mov al, %1+48
-		mov ah, 0eh ; modo de imprmir na tela
-  	int 10h     ; imprime o que tá em al
-
-    mov ah, 03h 
-    mov ch, 0   
-    mov cl, 0  
-    mov dh, 0   
-    mov dl, 1   
-    int 1aH 
-
-    .loop:
-        mov ah, 02h ;
-        int 1aH     
-        cmp dh, %1h
-        je good_job
-        add dh, 48
-        mov [time], dh
-        mov ah, 02h  ; Setando o cursor
-        mov bh, 0    ; Pagina 0
-        mov dh, 12   ; Linha
-        mov dl, 29 
-        int 10h
-        mov si, time
-        call printf
-    jmp .loop
+	mov al, %1+48
+	mov ah, 0eh ; modo de imprmir na tela
+	int 10h     ; imprime o que tá em al
+	mov ah, 03h 
+	mov ch, 0   
+	mov cl, 0  
+	mov dh, 0   
+	mov dl, 1   
+	int 1aH 
+	.loop:
+		mov ah, 02h ;
+		int 1aH     
+		cmp dh, %1h
+		je good_job
+		add dh, 48
+		mov [time], dh
+		mov ah, 02h  ; Setando o cursor
+		mov bh, 0    ; Pagina 0
+		mov dh, 12   ; Linha
+		mov dl, 29 
+		int 10h
+		mov si, time
+		call printf
+	jmp .loop
 %endmacro
+
+cursorApp:
+	drawer blackColor
+	call cursor_app1
+	drawer darkGreenColor
+ret
 
 getchar:
   mov ah, 00h
@@ -112,12 +120,9 @@ printf:
 	lodsb
 	cmp al,0
 	je .end
-
 	mov ah, 0eh
-	; Trocar por 0ah
-	mov bl, 15
+	mov bl, whiteColor
 	int 10h
-
 	mov dx, 0
 	jmp printf
 
@@ -137,10 +142,8 @@ ret
 
 menu:
 	call initVideo
-	call draw_logo
-	; Desenha a borda
-	call draw_border
-	; Escreve nome de cada APP
+	call draw_logo ; Desenha a borda
+	call draw_border ; Escreve nome de cada APP
 	setText 1, 16, title
 	setText 6, 4, app1
 	setText 6, 26, app2
@@ -148,10 +151,8 @@ menu:
 	setText 13, 26, app4
 	setText 20, 4, app5
 	setText 20, 26, app6
-	; Desenha os retangulos
-	call draw_box_app
-	; Inicia a aplicação
-	call first_cursor
+	call draw_box_app ; Desenha os retangulos
+	call first_cursor ; Inicia a aplicação
 
 delay:
 	mov ah, 86h
@@ -167,11 +168,11 @@ fast_delay:
 ret
 
 endline:
-    mov ah, 02h ; setar o cursor
-    mov bh, 0   ; pagina
-    mov dl, 1
-    inc dh
-    int 10h
+	mov ah, 02h ; setar o cursor
+	mov bh, 0   ; pagina
+	mov dl, 1
+	inc dh
+	int 10h
 jmp teclado
 
 delete_endline:
@@ -181,7 +182,7 @@ delete_endline:
 	mov al, ' '
 	mov ah, 09h ; codigo para printar caractere apenas onde esta o cursor
 	mov bh, 0   ; seta a pagina
-	mov bl, 15  ; seta a cor do caractere, nesse caso, branco
+	mov bl, whiteColor  ; seta a cor do caractere, nesse caso, branco
 	int 10h
 
 	mov ah, 02h ; setar o cursor
@@ -200,13 +201,13 @@ backspace:
 	mov cx, 1
 	mov ah, 09h ; codigo para printar caractere apenas onde esta o cursor
 	mov bh, 0   ; seta a pagina
-	mov bl, 15  ; seta a cor do caractere, nesse caso, branco
+	mov bl, whiteColor  ; seta a cor do caractere, nesse caso, branco
 	int 10h
 
 	mov ah, 02h ; setar o cursor
 	dec dl ; coluna --
 	mov bh, 0   ; pagina
-    int 10h
+	int 10h
 
 jmp teclado
 
@@ -277,12 +278,12 @@ box_app6:
 ret
 
 draw_box_app:
-	drawer 9
+	drawer blueColor
 	call box_app1
 ret
 
 draw_border:
-	drawer 9
+	drawer blueColor
 	mov cx, 0
 	.draw_seg:
 		mov dx, 0
@@ -365,7 +366,7 @@ ret
 background_white:
 	; Set background white
 	mov ah, 0ch 
-	mov al, 0fh
+	mov al, whiteColor
 	mov bh, 0
 	mov cx, 0
 	mov dx, 0
@@ -385,9 +386,7 @@ background_white:
 ret
 
 first_cursor:
-	drawer 0
-	call cursor_app2
-	drawer 2
+	call cursorApp
 	drawCursor 85, 54, 67, 98
 
   call getchar
@@ -424,9 +423,7 @@ init_browser:
 jmp init_browser
 
 second_cursor:
-	drawer 0
-	call cursor_app1
-	drawer 2
+	call cursorApp
 	drawCursor 85, 109, 122, 98
 
   call getchar
@@ -463,9 +460,7 @@ initPhotos:
 ret
 
 third_cursor:
-	drawer 0
-	call cursor_app1
-	drawer 2
+	call cursorApp
 	drawCursor 85, 164, 177, 98
 
   call getchar
@@ -736,9 +731,7 @@ get_input:
 jmp menu
 
 fourth_cursor:
-	drawer 0
-	call cursor_app1
-	drawer 2
+	call cursorApp
 	drawCursor 265, 54, 67, 278
 
   call getchar
@@ -779,9 +772,7 @@ notes_app:
   jmp teclado
 
 fifth_cursor:
-	drawer 0
-	call cursor_app1
-	drawer 2
+	call cursorApp
 	drawCursor 265, 109, 122, 278
 
   call getchar
@@ -835,9 +826,7 @@ time_app:
 jmp time_app
 
 sixth_cursor:
-	drawer 0
-	call cursor_app1
-	drawer 2
+	call cursorApp
 	drawCursor 265, 164, 177, 278
 
   call getchar
@@ -908,7 +897,7 @@ draw_dino:
 	ret
 
 draw_esc_button:
-    mov si, esc_button
+	mov si, esc_button
 	mov dx, 0            ; Y
 	mov bx, si
 	add si, 2

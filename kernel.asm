@@ -17,20 +17,20 @@ start:
 	call initVideo
 	getspassword:
 		mov si,stringaskpassword
-		call print_string
+		call printf
 		mov di,password
-		call get_password
+		call get_input
 	askpassword:
 		mov si,password
 		mov di,stringpassword
-		call get_password
+		call get_input
 		call strcmp
 		cmp al,1
 		jne wrong
 		jmp system
 	wrong:
 		mov si,stringwrongpassword
-		call print_string
+		call printf
 		inc dl
 		cmp dl,'5'
 		je dead
@@ -38,9 +38,11 @@ start:
 		mov al,dh
 		int 10h
 		mov si,stringwrongpassword2
-		call print_string
+		call printf
 		dec dh
 		jmp askpassword
+	system:
+	call initVideo
 	setText 15, 16, title
 	call draw_logo
 	call delay
@@ -134,6 +136,55 @@ getchar:
   mov ah, 00h
   int 16h
 ret
+
+get_input:
+	xor cl,cl ;zera variavel cl (sera usada como contador)
+	loop_get_input:
+		mov ah,0
+		int 16h
+		cmp al,08h ;backspace teclado?
+		je key_backspace_input
+		cmp al,0dh ;enter teclado?
+		je key_enter_input
+		cmp cl,28h ;40 valores ja teclados?
+		je loop_get_input ;só aceita backspace ou enter
+
+		mov ah,0eh
+		int 10h
+		mov byte [di],al
+		inc di
+		inc cl
+		jmp loop_get_input
+
+		key_backspace_input:
+			cmp cl,0
+			je loop_get_input ;n faz sentido apagar string vazia
+
+			dec di ;volta dl pra o caractere anterior
+			mov byte [di],0 ;zera o valor daquela posicao
+			dec cl ;diminui o contador em 1
+
+			mov ah,0eh
+			mov al,08h ;imprime backspace(volta o cursor)
+			int 10h
+
+			mov al,' '
+			int 10h
+
+			mov al,08h 
+			int 10h
+			jmp loop_get_input
+
+		key_enter_input:
+			mov al,0
+			mov byte[di],al
+
+			mov ah,0eh
+			mov al,0dh
+			int 10h
+			mov al,0ah
+			int 10h
+			ret
 
 strcmp:;di é a constante
 	strcmp_loop:
@@ -699,7 +750,7 @@ data:
 	stringwrongpassword db 'Incorrect Password.',0
 	stringwrongpassword2 db ' Chances Left',10,13,0
 	stringpassword times 16 db 0
-	password 16 db 0
+	password times 16 db 0
 	
 
 

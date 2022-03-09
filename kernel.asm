@@ -330,6 +330,7 @@ good_job:
 jmp start
 
 loading_app:
+	call loading_limit
 	call loading
 	call loading_off
 	call loading_limit
@@ -1043,17 +1044,17 @@ brasil:
 
 ; ------ Código a parte ------
 loading:
-	mov cx,0x000
+	mov cx, 50
 	loop_loading:
 		call loading_unit
 		inc cx
 		push cx
-		xor cx,cx
+		xor cx, cx
 		call fast_delay
 		pop cx
-		cmp cx,0x0100
+		cmp cx, 250
 		jne loop_loading
-		mov ah, 86h; INT 15h / AH = 86h - BIOS wait function. 
+		mov ah, 86h; INT 15h / AH = 86h
 		mov cx, 10	
 		xor dx, dx ;CX:DX = interval in microseconds
 		mov dx, 40	
@@ -1061,47 +1062,47 @@ loading:
 	ret
 
 loading_off:
-	mov cx,0x0040
+	mov cx, 50
 	loop_loading_off:
 		call loading_unit_off
 		inc cx
-		cmp cx,0x0240
+		cmp cx, 250
 		jne loop_loading_off
 	ret
 
 loading_unit_off:
 	mov ax,0x0c00 ;Write graphics pixel, preto
 	mov bh,0x00
-	mov dx,0x0100
+	mov dx, 160
 	loop_loading_unit_off:
 		int 10h
 		inc dx
-		cmp dx,0x0110
+		cmp dx, 170
 		jne loop_loading_unit_off
 	ret 
 
 loading_limit:
 	mov ax,0x0c0f ;Write graphics pixel,white
 	mov bh,0x00
-	mov dx,0x0100
+	mov dx, 160
 	loop_loading_limit:
-		mov cx,0x0040
+		mov cx, 49
 		int 10h
-		mov cx,0x0239
+		mov cx, 250
 		int 10h
 		inc dx
-		cmp dx,0x0110
+		cmp dx, 170
 		jne loop_loading_limit
 	ret
 
 loading_unit:
 	mov ax,0x0c02 ;Write graphics pixel, verde
 	mov bh,0x00
-	mov dx,0x0100
+	mov dx, 160
 	loop_loading_unit:
 		int 10h	
 		inc dx
-		cmp dx,0x0110
+		cmp dx, 170
 		jne loop_loading_unit
 	ret 
 ; ------- Mikahel Leal Dias 

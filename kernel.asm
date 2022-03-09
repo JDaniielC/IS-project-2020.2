@@ -356,10 +356,10 @@ good_job:
 jmp start
 
 loading_app:
+	call initVideo
+	call draw_logo
 	call loading_limit
 	call loading
-	call loading_off
-	call loading_limit
 ret
 
 background_white:
@@ -1412,19 +1412,10 @@ loading:
 		cmp cx, 250
 		jne loop_loading
 		mov ah, 86h; INT 15h / AH = 86h
-		mov cx, 10	
+		mov cx, 1	
 		xor dx, dx ;CX:DX = interval in microseconds
-		mov dx, 40	
+		mov dx, 5	
 		int 15h
-	ret
-
-loading_off:
-	mov cx, 50
-	loop_loading_off:
-		call loading_unit_off
-		inc cx
-		cmp cx, 250
-		jne loop_loading_off
 	ret
 
 loading_unit_off:

@@ -160,6 +160,12 @@ delay:
 	int 15h
 ret
 
+fast_delay:
+	mov ah, 86h
+	mov dx, 3000
+	int 15h
+ret
+
 endline:
     mov ah, 02h ; setar o cursor
     mov bh, 0   ; pagina
@@ -340,14 +346,21 @@ cursor_app6:
 ret
 
 bad_input:
-    setText 15, 20, error
-    call delay
+	setText 15, 20, error
+	call delay
 jmp start
 
 good_job:
-    setText 20, 4, work
-    call delay
+	setText 20, 4, work
+	call delay
 jmp start
+
+loading_app:
+	call initVideo
+	call draw_logo
+	call loading_limit
+	call loading
+ret
 
 background_white:
 	; Set background white
@@ -394,6 +407,7 @@ first_cursor:
 ret
 
 init_browser:
+	call loading_app
 	call initVideo
 	call background_white
 	call draw_dino
@@ -438,6 +452,7 @@ ret
 %endmacro
 
 initPhotos:
+	call loading_app
 	loadPhotos japan
 	loadPhotos france
 	loadPhotos england
@@ -743,6 +758,7 @@ fourth_cursor:
 ret
 
 notes_app:
+	call loading_app
 	; Init Video
 	mov ah, 0
   mov al, 2h
@@ -789,6 +805,7 @@ await_5: startTimer 5
 await_9: startTimer 9
 
 time_app:
+	call loading_app
 	call initVideo
 	setText 1, 14, time_to_rest
 	setText 5, 4, instruction_time
@@ -1382,4 +1399,60 @@ brasil:
 	.br_end:
 		ret
 
-; --------------~~~--------------
+; ------ Código a parte ------
+loading:
+	mov cx, 50
+	loop_loading:
+		call loading_unit
+		inc cx
+		push cx
+		xor cx, cx
+		call fast_delay
+		pop cx
+		cmp cx, 250
+		jne loop_loading
+		mov ah, 86h; INT 15h / AH = 86h
+		mov cx, 1	
+		xor dx, dx ;CX:DX = interval in microseconds
+		mov dx, 5	
+		int 15h
+	ret
+
+loading_unit_off:
+	mov ax,0x0c00 ;Write graphics pixel, preto
+	mov bh,0x00
+	mov dx, 160
+	loop_loading_unit_off:
+		int 10h
+		inc dx
+		cmp dx, 170
+		jne loop_loading_unit_off
+	ret 
+
+loading_limit:
+	mov ax,0x0c0f ;Write graphics pixel,white
+	mov bh,0x00
+	mov dx, 160
+	loop_loading_limit:
+		mov cx, 49
+		int 10h
+		mov cx, 250
+		int 10h
+		inc dx
+		cmp dx, 170
+		jne loop_loading_limit
+	ret
+
+loading_unit:
+	mov ax,0x0c02 ;Write graphics pixel, verde
+	mov bh,0x00
+	mov dx, 160
+	loop_loading_unit:
+		int 10h	
+		inc dx
+		cmp dx, 170
+		jne loop_loading_unit
+	ret 
+; ------- Mikahel Leal Dias 
+; ------- Igor Eduardo Mascarenhas 
+; ------- André Luiz Figueirôa de Barros

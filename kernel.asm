@@ -18,13 +18,110 @@ jmp 0x0000:start
 	call printf
 %endmacro
 
+
 start:
+
+	call initVideo
+	call login
+	system:
 	call initVideo
 	setText 15, 16, title
 	call draw_logo
 	call delay
 	call menu
 jmp $
+
+dead:
+	call clean
+	mov bx, 0
+	mov ax,0x0b00
+	int 10h
+
+get_password:
+	xor cl,cl ;zera variavel cl (sera usada como contador)
+	loop_get_password:
+		mov ah,0
+		int 16h
+		cmp al,08h ;backspace teclado?
+		je key_backspace_password
+		cmp al,0dh ;enter teclado?
+		je key_enter_password
+		cmp cl,0fh ;15 valores ja teclados?
+		je loop_get_password ;só aceita backspace ou enter
+
+		mov byte [di],al
+		inc di
+		mov al,'*'
+		mov ah,0eh
+		int 10h
+		inc cl
+		jmp loop_get_password
+
+		key_backspace_password:
+			cmp cl,0
+			je loop_get_password ;n faz sentido apagar string vazia
+
+			dec di ;volta dl pra o caractere anterior
+			mov byte [di],0 ;zera o valor daquela posicao
+			dec cl ;diminui o contador em 1
+
+			mov ah,0eh
+			mov al,08h ;imprime backspace(volta o cursor)
+			int 10h
+
+			mov al,' '
+			int 10h
+
+			mov al,08h 
+			int 10h
+			jmp loop_get_password
+
+		key_enter_password:
+			mov al,0
+			mov byte[di],al
+
+			mov ah,0eh
+			mov al,0dh
+			int 10h
+			mov al,0ah
+			int 10h
+			ret
+
+login:
+	getspassword:
+		mov bx, 15
+		mov si, stringusuario
+		call print_string
+		mov di, stringname
+		call get_input
+		mov si,string_senha
+		call print_string
+		mov di,password
+		call get_password
+		
+		jmp comp_pass
+	comp_pass:
+		mov si, String_senha2
+		call print_string
+		mov di, stringpassword
+		call get_password
+		mov si, stringpassword
+		mov di, password
+		call strcmp
+		cmp al,1
+		jne wrong
+		jmp system
+	wrong:
+		mov si,stringwrongpassword
+		call printf
+		inc dl
+		cmp dl,'5'
+		je dead
+		mov ah,0xe
+		mov al,dh
+		int 10h
+		dec dh
+		jmp comp_pass
 
 %macro drawer 1
 	mov ah, 0ch 
@@ -116,6 +213,7 @@ getchar:
   int 16h
 ret
 
+		
 printf:
 	lodsb
 	cmp al,0
@@ -561,25 +659,6 @@ print_string:
 	end_print_string:
 		ret
 
-strcmp:
-	strcmp_loop:
-		mov al,byte [di]
-		inc di
-		mov ah,byte [si]
-		inc si
-		cmp al,0
-		je eq
-		cmp ah,al
-		jne dif
-		jmp strcmp_loop
-	eq:
-		mov al,1
-		jmp strcmp_end
-	dif:
-		xor al,al
-	strcmp_end:
-		ret
-	
 print_user:
 	mov bx, 15
 	mov si,stringTCK
@@ -613,6 +692,25 @@ clean:
 	mov ah, 0x2
 	int 0x10
 ret
+
+strcmp:;di é a constante
+	strcmp_loop:
+		mov al,byte [di]
+		inc di
+		mov ah,byte [si]
+		inc si
+		cmp al,0
+		je eq
+		cmp ah,al
+		jne dif
+		jmp strcmp_loop
+	eq:
+		mov al,1
+		jmp strcmp_end
+	dif:
+		xor al,al
+	strcmp_end:
+		ret
 
 get_input:
 	xor cl,cl ;zera variavel cl (sera usada como contador)
@@ -854,11 +952,14 @@ about_app:
 	setText 16, 3, processador
 	setText 19, 3, ram
 	setText 22, 3, sistema
+	setText 10, 22, spcs
+	setText 7, 22, org_sp
 
 	setText 13, 22, JDaniel
 	setText 16, 22, Pedro
 	setText 19, 22, LK
 	setText 22, 22, tchucoOS
+	setText 4, 22, stringname
 
 	call draw_white_border
 	call draw_esc_button
@@ -953,9 +1054,11 @@ data:
 	time_9 db '3. 9 minutos', 0
 	; About
 	spec db 'Especificacoes do SO', 0
+	org_sp db 'ThucosSA',0
 	nomePc db 'Nome do PC ', 0
 	organizacao db 'Organizacao', 0
 	edicao db 'Edicao', 0
+	spcs db 'Edicao da realeza',0
 	compilacao db 'Compilacao do SO', 0
 	processador db 'Processador', 0
 	ram db 'RAM instalada', 0
@@ -967,10 +1070,19 @@ data:
 	; Notes app
 	bloco_de_notas db 'Bloco de notas', 0
 	ESC db 'ESC', 0
+	; Login
+	stringusuario db 'Username:', 0
+	string_senha db 'Create Password:',0
+	String_senha2 db 'Confirm password:',0
+	stringwrongpassword db 'Incorrect Password.',0
+	stringpassword times 16 db 0
+	password times 16 db 0
+	
+
 	; Command prompt
 	stringTCK db 'ThucOS@',0
 	stringpc db '-PC: ',0
-	stringaskname db 'User name: ',0
+	stringaskname db 'User name:',0
 	stringnocommand db 'No command ',39,0
 	stringfound db 39,' found.',10,13,0
 	stringcommandlist db 'Command List:',10,13,0
@@ -978,7 +1090,7 @@ data:
 	stringsecret2 db 'Secret para comandos incrivelmente secretos',10,13,0
 	stringtab db '  ',0
 	stringdan db '  Daniel ta ouvindo um pagodinho',10,13,0
-	stringlk db '  Inimigo do Trabalho',10,13,0
+	stringlk db '  Lk considera Eduardo o melhor professor',10,13,0
 	stringprds db '  Eu Amo Bitcoin e provavelmente neste momento to dando uma cagada', 10,13,0
 	stringtouch db '  lista de calouras mais lindas.c',10,13,0
 	stringrm db '  Voce perdeu as calouras',10,13,0
@@ -992,6 +1104,7 @@ data:
 	stringuname5 db '  Quem usa ThucOS faz uma grande favor ao meio ambiente :)',10,13,0
 	helloword db ' Hello world pq aqui a gente programa very good ',13,0
 	sdf db '  8mb livre amigao bora comprar um hd novo',13,10
+	
 	;commands
 	ls db 'ls',0
 	dan db 'dan',0

@@ -2,40 +2,42 @@ org 0x7e00
 jmp 0x0000:start
 
 %define blackColor 0
+%define blueColor 1
 %define darkGreenColor 2
-%define blueColor 9
+%define blue 3
+%define redColor 4
+%define lightGrayColor 7
 %define greenColor 10
 %define yellowColor 14
 %define whiteColor 15
 
-%macro setText 3
+%macro setText 4
 	mov ah, 02h  ; Setando o cursor
 	mov bh, 0    ; Pagina 0
 	mov dh, %1   ; Linha
 	mov dl, %2   ; Coluna
 	int 10h
+	mov bx, %4
 	mov si, %3
-	call printf
+	call printf_color
 %endmacro
 
+%macro simplePrintf 2
+	mov bx, %2
+	mov si, %1
+	call printf_color
+%endmacro
 
 start:
-
 	call initVideo
 	call login
 	system:
 	call initVideo
-	setText 15, 16, title
+	setText 15, 16, title, greenColor
 	call draw_logo
 	call delay
 	call menu
 jmp $
-
-dead:
-	call clean
-	mov bx, 0
-	mov ax,0x0b00
-	int 10h
 
 get_password:
 	xor cl,cl ;zera variavel cl (sera usada como contador)
@@ -55,54 +57,50 @@ get_password:
 		mov ah,0eh
 		int 10h
 		inc cl
-		jmp loop_get_password
+	jmp loop_get_password
 
-		key_backspace_password:
-			cmp cl,0
-			je loop_get_password ;n faz sentido apagar string vazia
+	key_backspace_password:
+		cmp cl,0
+		je loop_get_password ;n faz sentido apagar string vazia
 
-			dec di ;volta dl pra o caractere anterior
-			mov byte [di],0 ;zera o valor daquela posicao
-			dec cl ;diminui o contador em 1
+		dec di ;volta dl pra o caractere anterior
+		mov byte [di],0 ;zera o valor daquela posicao
+		dec cl ;diminui o contador em 1
 
-			mov ah,0eh
-			mov al,08h ;imprime backspace(volta o cursor)
-			int 10h
+		mov ah,0eh
+		mov al,08h ;imprime backspace(volta o cursor)
+		int 10h
 
-			mov al,' '
-			int 10h
+		mov al,' '
+		int 10h
 
-			mov al,08h 
-			int 10h
-			jmp loop_get_password
+		mov al,08h 
+		int 10h
+	jmp loop_get_password
 
-		key_enter_password:
-			mov al,0
-			mov byte[di],al
+	key_enter_password:
+		mov al,0
+		mov byte[di],al
 
-			mov ah,0eh
-			mov al,0dh
-			int 10h
-			mov al,0ah
-			int 10h
-			ret
+		mov ah,0eh
+		mov al,0dh
+		int 10h
+		mov al,0ah
+		int 10h
+	ret
 
 login:
 	getspassword:
-		mov bx, 15
-		mov si, stringusuario
-		call print_string
+		simplePrintf stringusuario, whiteColor
 		mov di, stringname
 		call get_input
-		mov si,string_senha
-		call print_string
+		simplePrintf string_senha, whiteColor
 		mov di,password
 		call get_password
 		
 		jmp comp_pass
 	comp_pass:
-		mov si, String_senha2
-		call print_string
+		simplePrintf String_senha2, whiteColor
 		mov di, stringpassword
 		call get_password
 		mov si, stringpassword
@@ -112,16 +110,9 @@ login:
 		jne wrong
 		jmp system
 	wrong:
-		mov si,stringwrongpassword
-		call printf
-		inc dl
-		cmp dl,'5'
-		je dead
-		mov ah,0xe
-		mov al,dh
-		int 10h
-		dec dh
-		jmp comp_pass
+		simplePrintf stringwrongpassword, whiteColor
+		call endl
+	jmp comp_pass
 
 %macro drawer 1
 	mov ah, 0ch 
@@ -177,6 +168,7 @@ login:
 
 %macro startTimer 1
 	mov al, %1+48
+	mov bx, whiteColor
 	mov ah, 0eh ; modo de imprmir na tela
 	int 10h     ; imprime o que tá em al
 	mov ah, 03h 
@@ -192,13 +184,7 @@ login:
 		je good_job
 		add dh, 48
 		mov [time], dh
-		mov ah, 02h  ; Setando o cursor
-		mov bh, 0    ; Pagina 0
-		mov dh, 12   ; Linha
-		mov dl, 29 
-		int 10h
-		mov si, time
-		call printf
+		setText 12, 29, time, yellowColor
 	jmp .loop
 %endmacro
 
@@ -213,42 +199,34 @@ getchar:
   int 16h
 ret
 
-		
-printf:
-	lodsb
-	cmp al,0
-	je .end
-	mov ah, 0eh
-	mov bl, whiteColor
-	int 10h
-	mov dx, 0
-	jmp printf
-
-	.end:
-	mov ah, 0eh
-	mov al, 0xd
-	int 10h
-	mov al, 0xa
-	int 10h
-ret
-
 initVideo:
 	mov ah, 00h
 	mov al, 13h
 	int 10h
 ret
 
+printf_color:
+	loop_print_string:
+		lodsb
+		cmp al,0
+		je end_print_string
+		mov ah,0eh
+		int 10h
+		jmp loop_print_string
+	end_print_string:
+ret
+
 menu:
 	call initVideo
 	call draw_logo ; Desenha a borda
 	call draw_border ; Escreve nome de cada APP
-	setText 1, 16, title
-	setText 6, 4, app1
-	setText 6, 26, app2
-	setText 13, 4, app3
-	setText 13, 26, app4
-	setText 20, 4, app5
-	setText 20, 26, app6
+	setText 1, 16, title, darkGreenColor
+	setText 6, 4, app1, darkGreenColor
+	setText 6, 26, app2, darkGreenColor
+	setText 13, 4, app3, darkGreenColor
+	setText 13, 26, app4, darkGreenColor
+	setText 20, 4, app5, darkGreenColor
+	setText 20, 26, app6, darkGreenColor
 	call draw_box_app ; Desenha os retangulos
 	call first_cursor ; Inicia a aplicação
 
@@ -376,12 +354,12 @@ box_app6:
 ret
 
 draw_box_app:
-	drawer blueColor
+	drawer blue
 	call box_app1
 ret
 
 draw_border:
-	drawer blueColor
+	drawer whiteColor
 	mov cx, 0
 	.draw_seg:
 		mov dx, 0
@@ -406,7 +384,7 @@ draw_border:
 
 draw_white_border:
 	mov ah, 0ch 
-	mov al, 0fh
+	mov al, whiteColor
 	mov bh, 0
 	mov cx, 0
 	.draw_seg:
@@ -445,14 +423,14 @@ cursor_app6:
 ret
 
 bad_input:
-	setText 15, 20, error
+	setText 15, 20, error, whiteColor
 	call delay
-jmp start
+jmp menu
 
 good_job:
-	setText 20, 4, work
+	setText 20, 4, work, whiteColor
 	call delay
-jmp start
+jmp menu
 
 loading_app:
 	call initVideo
@@ -508,17 +486,17 @@ init_browser:
 	call initVideo
 	call background_white
 	call draw_dino
-	setText 11, 13, offline
-	setText 14, 3, text_fun1
-	setText 15, 3, text_fun2
-	setText 18, 12, try
+	setText 11, 13, offline, whiteColor
+	setText 14, 3, text_fun1, whiteColor
+	setText 15, 3, text_fun2, whiteColor
+	setText 18, 12, try, whiteColor
 	call draw_esc_button
 
-	call getchar
-
-	cmp al, 27
+	exitBrowser:
+		call getchar
+		cmp al, 27
 	je menu
-jmp init_browser
+jmp exitBrowser
 
 second_cursor:
 	call cursorApp
@@ -577,23 +555,10 @@ third_cursor:
   jmp third_cursor
 ret
 
-%macro setprint 1
-	mov si,stringtab
-	call print_string
-	mov si, %1 ;string a ser printada
-	call print_string	
+%macro setprint 2
+	simplePrintf	stringtab, blackColor
+	simplePrintf %1, %2 ;string a ser printada
 	call endl
-%endmacro
-
-%macro setcommand 1
-	mov bx, 15
-	mov si, %1
-	call print_string
-%endmacro
-
-%macro printuname 1
-	mov si,%1
-	call print_string
 %endmacro
 
 %macro funcao 2
@@ -608,17 +573,16 @@ prompt_command:
 	xor ax,ax
 	mov ds,ax
 	call video
-	mov bx, 15
+	mov bx, whiteColor
 	xor dx,dx
 	mov dl,'0'
 	mov dh,'4'
 	system_loop:
 		call print_user
-		mov bx, 14
-		mov di,stringinput
+		mov bx, yellowColor
+		mov di, stringinput
 		call get_input
 
-		mov bx, 15
 		funcao ls, command_ls
 		funcao dan, command_dan
 		funcao lk, command_lk
@@ -635,49 +599,30 @@ prompt_command:
 		funcao df, command_df
 		funcao exit, command_exit
 		
-		jmp invalid
+	jmp invalid	
 
 	invalid:
-		mov si,stringnocommand
-		call print_string
-		mov si,stringinput
-		call print_string
-		mov si,stringfound
-		call print_string
+		simplePrintf stringnocommand, whiteColor
+		simplePrintf stringinput, whiteColor
+		simplePrintf stringfound, whiteColor
 	jmp system_loop
 jmp $
 
-
-print_string:
-	loop_print_string:
-		lodsb
-		cmp al,0
-		je end_print_string
-		mov ah,0eh
-		int 10h
-		jmp loop_print_string
-	end_print_string:
-		ret
-
 print_user:
-	mov bx, 15
-	mov si,stringTCK
-	call print_string
-	mov si,stringname
-	call print_string
-	mov si,stringpc
-	call print_string
-	ret
+	simplePrintf stringTCK, whiteColor
+	simplePrintf stringname, whiteColor
+	simplePrintf stringpc, whiteColor
+ret
 
 endl:
 	mov ax,0x0e0a
 	int 10h
 	mov al,0x0d
 	int 10h
-	ret
+ret
 
 clean:
-	mov dx, 0 ; Set the cursor to top left-most corner of screen
+	mov dx, 0 
 	mov bh, 0      
 	mov ah, 0x2
 	int 0x10
@@ -710,7 +655,7 @@ strcmp:;di é a constante
 	dif:
 		xor al,al
 	strcmp_end:
-		ret
+	ret
 
 get_input:
 	xor cl,cl ;zera variavel cl (sera usada como contador)
@@ -729,104 +674,117 @@ get_input:
 		mov byte [di],al
 		inc di
 		inc cl
-		jmp loop_get_input
+	jmp loop_get_input
 
-		key_backspace_input:
-			cmp cl,0
-			je loop_get_input ;n faz sentido apagar string vazia
+	key_backspace_input:
+		cmp cl,0
+		je loop_get_input ; n faz sentido apagar string vazia
 
-			dec di ;volta dl pra o caractere anterior
-			mov byte [di],0 ;zera o valor daquela posicao
-			dec cl ;diminui o contador em 1
+		dec di ; volta dl pra o caractere anterior
+		mov byte [di],0 ; zera o valor daquela posicao
+		dec cl ; diminui o contador em 1
 
-			mov ah,0eh
-			mov al,08h ;imprime backspace(volta o cursor)
-			int 10h
+		mov ah,0eh
+		mov al,08h ; imprime backspace(volta o cursor)
+		int 10h
 
-			mov al,' '
-			int 10h
+		mov al,' '
+		int 10h
 
-			mov al,08h 
-			int 10h
-		jmp loop_get_input
+		mov al,08h 
+		int 10h
+	jmp loop_get_input
 
-		key_enter_input:
-			mov al,0
-			mov byte[di],al
+	key_enter_input:
+		mov al,0
+		mov byte[di],al
 
-			mov ah,0eh
-			mov al,0dh
-			int 10h
-			mov al,0ah
-			int 10h
-		ret
+		mov ah,0eh
+		mov al,0dh
+		int 10h
+		mov al,0ah
+		int 10h
+	ret
 
-	command_ls:
-		mov bx, 15
-		mov si,stringcommandlist
-		call print_string
-		setprint touch
-		setprint rm
-		setprint ping
-		setprint cd
-		setprint sudo
-		setprint uname
-		setprint hello
-		setprint df
-		setprint clear
-		setprint exit
-		mov bx, 7
-		setprint stringsecret2
-		jmp system_loop
-		command_dan:
-		setcommand stringdan
-		jmp system_loop
-    command_lk:
-		setcommand stringlk
-		jmp system_loop
-    command_prds:
-		setcommand stringprds
-		jmp system_loop
-    command_touch:
-		setcommand stringtouch
-		jmp system_loop
-    command_rm:
-		setcommand stringrm
-		jmp system_loop
-    command_ping:
-		setcommand stringping
-		jmp system_loop
-		command_cd:
-		setcommand stringcd
-		jmp system_loop
-		command_sudo:
-		setcommand stringsudo
-		jmp system_loop
-		command_uname:
-		mov bx, 10 ;verde = lacoste
-		printuname stringuname
-		printuname stringuname2
-		printuname stringuname3
-		printuname stringuname4
-		printuname stringuname5
-		jmp system_loop
-		command_secret:
-		setprint stringsecreta32
-		setprint dan
-		setprint lk
-		setprint prds
-		jmp system_loop
-		command_hello:
-		setprint helloword
-		jmp system_loop
-		command_clear:
-		call clean
-		jmp system_loop
-		command_df:
-		setcommand sdf
-		jmp system_loop
-	command_exit
+; ------ Commands -------
+
+command_ls:
+	simplePrintf stringcommandlist, whiteColor
+	setprint touch, whiteColor
+	setprint rm, whiteColor
+	setprint ping, whiteColor
+	setprint cd, whiteColor
+	setprint sudo, whiteColor
+	setprint uname, whiteColor
+	setprint hello, whiteColor
+	setprint df, whiteColor
+	setprint clear, whiteColor
+	setprint exit, whiteColor
+	setprint stringsecret2, lightGrayColor
+jmp system_loop
+
+command_dan:
+	simplePrintf stringdan, whiteColor
+jmp system_loop
+
+command_lk:
+	simplePrintf stringlk, whiteColor
+jmp system_loop
+
+command_prds:
+	simplePrintf stringprds, whiteColor
+jmp system_loop
+
+command_touch:
+	simplePrintf stringtouch, whiteColor
+jmp system_loop
+
+command_rm:
+	simplePrintf stringrm, whiteColor
+jmp system_loop
+
+command_ping:
+	simplePrintf stringping, whiteColor
+jmp system_loop
+
+command_cd:
+	simplePrintf stringcd, whiteColor
+jmp system_loop
+
+command_sudo:
+	simplePrintf stringsudo, whiteColor
+jmp system_loop
+
+command_uname:
+	simplePrintf stringuname, greenColor
+	simplePrintf stringuname2, greenColor
+	simplePrintf stringuname3, greenColor
+	simplePrintf stringuname4, greenColor
+	simplePrintf stringuname5, greenColor
+jmp system_loop
+
+command_secret:
+	setprint stringsecreta32, whiteColor
+	setprint dan, greenColor
+	setprint lk, greenColor
+	setprint prds, greenColor
+jmp system_loop
+
+command_hello:
+	setprint helloword, whiteColor
+jmp system_loop
+
+command_clear:
+	call clean
+jmp system_loop
+
+command_df:
+	simplePrintf sdf, whiteColor
+jmp system_loop
+command_exit
 jmp menu
+
+; ---------------//------------
 
 fourth_cursor:
 	call cursorApp
@@ -860,8 +818,8 @@ notes_app:
   mov bl, 1
   int 10h
 
-	setText 1, 1, ESC
-	setText 1, 33, bloco_de_notas
+	setText 1, 1, ESC, whiteColor
+	setText 1, 33, bloco_de_notas, whiteColor
 	mov ah, 02h ; Setando o cursor
   mov dh, 2   ; Linha
 	mov dl, 1   ; Coluna
@@ -896,13 +854,14 @@ await_9: startTimer 9
 time_app:
 	call loading_app
 	call initVideo
-	setText 1, 14, time_to_rest
-	setText 5, 4, instruction_time
-	setText 9, 27, timer
-	setText 9, 4, time_3
-	setText 12, 4, time_5
-	setText 15, 4, time_9
-	setText 22, 11, obs
+	call draw_border
+	setText 1, 14, time_to_rest, whiteColor
+	setText 5, 4, instruction_time, whiteColor
+	setText 9, 27, timer, whiteColor
+	setText 9, 4, time_3, whiteColor
+	setText 12, 4, time_5, whiteColor
+	setText 15, 4, time_9, whiteColor
+	setText 22, 11, obs, whiteColor
 	call draw_esc_button
 
 	mov ah, 02h  ; Setando o cursor
@@ -944,22 +903,22 @@ ret
 
 about_app:
 	call initVideo
-	setText 1, 10, spec
-	setText 4, 3, nomePc
-	setText 7, 3, organizacao
-	setText 10, 3, edicao
-	setText 13, 3, compilacao
-	setText 16, 3, processador
-	setText 19, 3, ram
-	setText 22, 3, sistema
-	setText 10, 22, spcs
-	setText 7, 22, org_sp
+	setText 1, 10, spec, blue
+	setText 4, 3, nomePc, blue
+	setText 7, 3, organizacao, blue
+	setText 10, 3, edicao, blue
+	setText 13, 3, compilacao, blue
+	setText 16, 3, processador, blue
+	setText 19, 3, ram, blue
+	setText 22, 3, sistema, blue
+	setText 10, 22, spcs, blue
+	setText 7, 22, org_sp, blue
 
-	setText 13, 22, JDaniel
-	setText 16, 22, Pedro
-	setText 19, 22, LK
-	setText 22, 22, tchucoOS
-	setText 4, 22, stringname
+	setText 13, 22, JDaniel, blue
+	setText 16, 22, Pedro, blue
+	setText 19, 22, LK, blue
+	setText 22, 22, tchucoOS, blue
+	setText 4, 22, stringname, blue
 
 	call draw_white_border
 	call draw_esc_button
@@ -1078,7 +1037,6 @@ data:
 	stringpassword times 16 db 0
 	password times 16 db 0
 	
-
 	; Command prompt
 	stringTCK db 'ThucOS@',0
 	stringpc db '-PC: ',0
@@ -1234,7 +1192,7 @@ japan:
 		jg .jp_red
 		mov cx, 0
 		.jp_loop_white:
-			setColor 15
+			setColor whiteColor
 			inc cx
 			cmp cx, 640
 			jl .jp_loop_white
@@ -1243,13 +1201,13 @@ japan:
 	.jp_red:
 		mov cx, 320
 		mov dx, 240
-		filled_circle 125, 15625, 4
+		filled_circle 125, 15625, redColor
 
 	.jp_end:
 		ret
 
 france:
-	setBackground 4
+	setBackground redColor
 
 	mov dx, 0
 
@@ -1258,7 +1216,7 @@ france:
 	jg .fr_next
 	mov cx, 0 ; inicio da linha 
 	.fr_loop_blue:
-		setColor 1
+		setColor blueColor
 		inc cx
 		cmp cx, 214
 		jl .fr_loop_blue
@@ -1273,7 +1231,7 @@ france:
 		jg .fr_end
 		mov cx, 214
 		.fr_loop_white:
-			setColor 15
+			setColor whiteColor
 			inc cx
 			cmp cx, 427
 			jl .fr_loop_white
@@ -1284,7 +1242,7 @@ france:
 		ret
 
 italy:
-	setBackground 4
+	setBackground redColor
 
 	mov dx, 0
 
@@ -1293,7 +1251,7 @@ italy:
 	jg .it_next
 	mov cx, 0 ; inicio da linha 
 	.it_loop_green:
-		setColor 2
+		setColor darkGreenColor
 		inc cx
 		cmp cx, 214
 		jl .it_loop_green
@@ -1308,7 +1266,7 @@ italy:
 		jg .it_end
 		mov cx, 214
 		.it_loop_white:
-			setColor 15
+			setColor whiteColor
 			inc cx
 			cmp cx, 427
 			jl .it_loop_white
@@ -1326,7 +1284,7 @@ germany:
 		jg .gr_yellow
 		mov cx, 0
 		.gr_loop_red:
-			setColor 4
+			setColor redColor
 			inc cx
 			cmp cx, 640
 			jl .gr_loop_red
@@ -1338,7 +1296,7 @@ germany:
 		jg .gr_end
 		mov cx, 0
 		.gr_loop_yellow:
-			setColor 14
+			setColor yellowColor
 			inc cx
 			cmp cx, 640
 			jl .gr_loop_yellow
@@ -1349,7 +1307,7 @@ germany:
 		ret
 
 russia:
-	setBackground 4
+	setBackground redColor
 
 	mov dx, 0
 
@@ -1358,7 +1316,7 @@ russia:
 		jg .rs_blue
 		mov cx, 0
 		.rs_loop_white:
-			setColor 15
+			setColor whiteColor
 			inc cx
 			cmp cx, 640
 			jl .rs_loop_white
@@ -1370,7 +1328,7 @@ russia:
 		jg .rs_end
 		mov cx, 0
 		.rs_loop_blue:
-			setColor 1
+			setColor blueColor
 			inc cx
 			cmp cx, 640
 			jl .rs_loop_blue
@@ -1388,7 +1346,7 @@ england:
 		jg .en_next
 		mov cx, 0
 		.en_loop_white:
-			setColor 15
+			setColor whiteColor
 			inc cx
 			cmp cx, 640
 			jl .en_loop_white
@@ -1403,7 +1361,7 @@ england:
 		jg .en_next1
 		mov cx, 280
 		.en_loop_red1:
-			setColor 4
+			setColor redColor
 			inc cx
 			cmp cx, 360
 			jl .en_loop_red1
@@ -1418,7 +1376,7 @@ england:
 		jg .en_end
 		mov cx, 0
 		.en_loop_red2:
-			setColor 4
+			setColor redColor
 			inc cx
 			cmp cx, 640
 			jl .en_loop_red2
@@ -1429,7 +1387,7 @@ england:
 		ret
 
 brasil:
-	setBackground 2
+	setBackground darkGreenColor
 
 	mov dx, 0
 
@@ -1446,7 +1404,7 @@ brasil:
 		push cx
 		.br_loopLine:
 			push ax
-			setColor 14
+			setColor yellowColor
 			pop ax
 			inc cx
 			cmp cx, ax
@@ -1463,7 +1421,7 @@ brasil:
 		push cx
 		.br_loopLine1:
 			push ax
-			setColor 14
+			setColor yellowColor
 			pop ax
 			inc cx
 			cmp cx, ax
@@ -1480,7 +1438,7 @@ brasil:
 
 	mov cx, 320
 	mov dx, 240
-	call filled_circle 110, 12100, 1
+	call filled_circle 110, 12100, blueColor
 
 	mov dx, 235
 	mov cx, 225
@@ -1490,7 +1448,7 @@ brasil:
 		jg .br_end
 		push cx
 		.loopLine4:
-			setColor 15
+			setColor whiteColor
 			inc cx
 			cmp cx, 420
 			jl .loopLine4

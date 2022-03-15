@@ -218,16 +218,16 @@ ret
 
 menu:
 	call initVideo
-	call draw_logo ; Desenha a borda
+	call draw_logo_background ; Desenha a borda
 	call draw_border ; Escreve nome de cada APP
+	call draw_box_app ; Desenha os retangulos
 	setText 1, 16, title, darkGreenColor
 	setText 6, 4, app1, darkGreenColor
-	setText 6, 26, app2, darkGreenColor
+	setText 6, 27, app2, darkGreenColor
 	setText 13, 4, app3, darkGreenColor
 	setText 13, 26, app4, darkGreenColor
 	setText 20, 4, app5, darkGreenColor
-	setText 20, 26, app6, darkGreenColor
-	call draw_box_app ; Desenha os retangulos
+	setText 20, 27, app6, darkGreenColor
 	call first_cursor ; Inicia a aplicação
 
 delay:
@@ -339,18 +339,97 @@ draw_logo:
 	.endfor1:
 ret
 
+%macro position 2
+	push dx
+	push cx
+	mov ah, 0ch
+	add dx, %1
+	add cx, %2
+	int 10h
+	pop cx
+	pop dx
+%endmacro
+
+lacoste_positions:
+	position 20, 10
+	position 20, 150
+	position 20, 280
+	position 50, 80
+	position 50, 230
+	position 80, 10
+	position 80, 150
+	position 80, 280
+	position 110, 80
+	position 110, 230
+	position 140, 10
+	position 140, 150
+	position 140, 280
+	position 170, 80
+	position 170, 230
+ret
+
+draw_logo_background: 
+	mov si, lacoste
+	mov dx, 0            ; Y
+	mov bx, si
+	add si, 2
+	.for1:
+		cmp dl, byte[bx+1]
+		je .endfor1
+		mov cx, 0        ; X
+	.for2:
+		cmp cl, byte[bx]
+		je .endfor2
+		lodsb
+		call lacoste_positions
+		inc cx
+		jmp .for2
+	.endfor2:
+		inc dx
+		jmp .for1
+	.endfor1:
+ret
+
+%macro blackBackgroundApp 4
+	mov ah, 0ch 
+	mov al, blackColor
+	mov bh, 0
+	mov cx, %1
+	mov dx, %2
+	.draw_seg:
+		int 10h
+		inc cx
+		cmp cx, %3
+		je .jump_row
+		jne .draw_seg
+	.back_column:
+		mov cx, %1
+		jmp .draw_seg
+	.jump_row:
+		inc dx
+		cmp dx, %4
+		jne .back_column
+	mov al, blue ; Voltando a cor original
+%endmacro
+
 box_app1: 
 	drawSquare 20, 145, 100, 180
+	blackBackgroundApp 21, 146, 100, 180
 box_app2:
 	drawSquare 200, 35, 280, 70
+	blackBackgroundApp 201, 36, 280, 70
 box_app3:
 	drawSquare 200, 90, 280, 125
+	blackBackgroundApp 201, 91, 280, 125
 box_app4:
 	drawSquare 200, 145, 280, 180
+	blackBackgroundApp 201, 146, 280, 180
 box_app5:
 	drawSquare 20, 35, 100, 70
+	blackBackgroundApp 21, 36, 100, 70
 box_app6:
 	drawSquare 20, 90, 100, 125
+	blackBackgroundApp 21, 91, 100, 125
 ret
 
 draw_box_app:
